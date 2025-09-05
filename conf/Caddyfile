@@ -1,0 +1,31 @@
+{$HOST}:80 {
+    redir https://{host}:{$HTTPS_PORT}{uri}
+}
+
+{$HOST}:443 {
+    root * /srv
+
+    encode
+    templates
+    file_server browse
+
+    basic_auth /* {
+        admin {$BASIC_AUTH_HASH}
+    }
+
+    log {
+        output file /logs/{$LOG_FILE} {
+            mode 644
+            roll_size 10MB
+            roll_keep 5
+            roll_keep_for 48h
+        }
+
+        format console
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}
