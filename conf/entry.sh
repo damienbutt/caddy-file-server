@@ -2,18 +2,6 @@
 
 set -e
 
-# Set default UID/GID if not provided
-if [ -z "$PUID" ]; then
-    PUID=1000
-fi
-
-if [ -z "$PGID" ]; then
-    PGID=1000
-fi
-
-echo "👤 Running as user $PUID:$PGID"
-
-# Set timezone if provided (TZ env var is already set in docker-compose.yml)
 if [ -n "$TZ" ]; then
     echo "🕐 Timezone set to $TZ via environment variable"
 else

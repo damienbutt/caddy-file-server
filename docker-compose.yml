@@ -3,7 +3,6 @@ services:
     image: caddy:latest
     container_name: caddy-file-server
     restart: unless-stopped
-    user: "${PUID:-1000}:${PGID:-1000}"
     env_file:
       - .env
     environment:
@@ -15,9 +14,9 @@ services:
       - "${HTTPS_PORT:-443}:443"
       - "${HTTPS_PORT:-443}:443/udp"
     volumes:
-      - $PWD/conf:/etc/caddy
-      - $PWD/site:/srv
-      - $PWD/logs:/logs
+      - ./conf:/etc/caddy
+      - ${SITE_DIR:-./site}:/srv
+      - ${LOGS_DIR:-./logs}:/logs
       - caddy_data:/data
       - caddy_config:/config
     entrypoint: ["/etc/caddy/entry.sh"]

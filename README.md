@@ -11,7 +11,9 @@ A secure, containerized file server built with Caddy web server. Features automa
 -   🐳 **Docker Containerized** for easy deployment
 -   🔧 **Configurable** via environment variables
 -   🚀 **HTTP to HTTPS Redirect** for security
--   👤 **Proper User Permissions** - runs as non-root user with correct ownership
+-   🔄 **Automatic Permission Fixing** - handles volume ownership issues automatically
+-   📂 **Configurable Directories** - customize log and site file locations
+-   🎉 **Welcome File** - automatically creates hello.txt in new site directories
 
 ## Quick Start 🚀
 
@@ -22,36 +24,27 @@ A secure, containerized file server built with Caddy web server. Features automa
     cd caddy-file-server
     ```
 
-2. **Check your server's user ID (important for permissions):**
-
-    ```bash
-    # On your server, check your user ID
-    id $USER
-    # Note the uid=XXXX and gid=YYYY values
-    ```
-
-3. **Create environment configuration:**
+2. **Create environment configuration:**
 
     ```bash
     cp .env.example .env
-    # Edit .env with your preferred settings
-    # IMPORTANT: Set PUID and PGID to match your server's user ID from step 2
+    # Edit .env with your preferred settings (optional - defaults work fine)
     ```
 
-4. **Add your files:**
+3. **Start the server (fully automated):**
 
     ```bash
-    # Place files to serve in the site/ directory
-    cp your-files/* site/
-    ```
+    # Option 1: Use the automated script (recommended)
+    ./start.sh
 
-5. **Start the server:**
-
-    ```bash
+    # Option 2: Manual setup
+    ./pre-up.sh  # Setup permissions
     docker-compose up -d
     ```
 
-6. **Access your files:**
+    _🎉 That's it! Permissions are handled automatically and a welcome file is created._
+
+4. **Access your files:**
     - Open your browser to `https://localhost` (or your configured HOST)
     - Login with your configured credentials (default: admin/password)
 
@@ -70,8 +63,8 @@ Configure the server by copying `.env.example` to `.env` and setting your prefer
 | `LOG_FILE`   | `access.log` | Log file name                                                                  |
 | `CERT_FILE`  | `cert.pem`   | Custom SSL certificate file                                                    |
 | `KEY_FILE`   | `key.pem`    | Custom SSL private key file                                                    |
-| `PUID`       | `1000`       | User ID for container (for file permissions) - set to your host user's UID     |
-| `PGID`       | `1000`       | Group ID for container (for file permissions) - set to your host user's GID    |
+| `LOGS_DIR`   | `./logs`     | Directory for log files (host path)                                            |
+| `SITE_DIR`   | `./site`     | Directory for website files (host path)                                        |
 
 ### SSL Certificates 🔐
 
@@ -98,13 +91,17 @@ caddy-file-server/
 ├── conf/
 │   ├── Caddyfile      # Caddy server configuration
 │   └── entry.sh       # Container startup script
-├── site/              # Files to serve (add your content here)
-├── logs/              # Server access logs
-├── certs/             # SSL certificates (optional)
+├── logs/              # Log files (configurable via LOGS_DIR)
+├── site/              # Website files (configurable via SITE_DIR)
+│   └── hello.txt      # Welcome file (created automatically)
+├── pre-up.sh          # Pre-startup permission setup script
+├── start.sh           # Automated startup script
 ├── docker-compose.yml # Docker composition
 ├── .env.example       # Environment template
 └── README.md
 ```
+
+**Note:** The `logs/` and `site/` directories can be relocated using `LOGS_DIR` and `SITE_DIR` environment variables. A `hello.txt` welcome file is automatically created in new site directories.
 
 ## Usage Examples 💡
 
@@ -126,36 +123,6 @@ USERNAME=your-admin
 PASSWORD=your-secure-password
 LOG_FILE=production.log
 EOF
-
-docker-compose up -d
-```
-
-### Production Setup with Proper User Permissions
-
-```bash
-# Configure for production with proper user permissions
-cat > .env << EOF
-HOST=files.yourdomain.com
-USERNAME=your-admin
-PASSWORD=your-secure-password
-LOG_FILE=production.log
-PUID=1000
-PGID=1000
-EOF
-
-docker-compose up -d
-```
-
-### Custom User Permissions
-
-```bash
-# Find your user's UID/GID on the host system
-id $USER
-# uid=1000(youruser) gid=1000(youruser) groups=1000(youruser)
-
-# Set matching permissions in .env
-echo "PUID=1000" >> .env
-echo "PGID=1000" >> .env
 
 docker-compose up -d
 ```
@@ -196,6 +163,59 @@ docker-compose up -d
 # TZ=UTC (default)
 ```
 
+### Custom Directory Locations
+
+```bash
+# Use custom directories for logs and site files
+cat > .env << EOF
+LOGS_DIR=/var/log/caddy
+SITE_DIR=/var/www/html
+EOF
+
+# The pre-up script will create and set permissions for these directories
+./start.sh
+```
+
+### External Storage
+
+```bash
+# Use external mounted storage
+cat > .env << EOF
+LOGS_DIR=/mnt/external/logs
+SITE_DIR=/mnt/external/site
+EOF
+
+./start.sh
+```
+
+### Quick Examples
+
+**Default setup:**
+
+```bash
+./start.sh  # Uses ./logs and ./site
+```
+
+**Custom directories:**
+
+```bash
+# Edit .env
+echo "LOGS_DIR=/var/log/caddy" >> .env
+echo "SITE_DIR=/var/www/caddy" >> .env
+
+./start.sh  # Uses custom directories
+```
+
+**External storage:**
+
+```bash
+# Edit .env
+echo "LOGS_DIR=/mnt/nas/logs" >> .env
+echo "SITE_DIR=/mnt/nas/website" >> .env
+
+./start.sh  # Uses external storage
+```
+
 ## Security Considerations 🔒
 
 -   **Change default credentials** before production use
@@ -210,74 +230,6 @@ docker-compose up -d
 -   Log rotation is configured (10MB max, keep 5 files, 48h retention)
 -   Logs are also output to stdout for container monitoring
 -   Log format: console (human-readable)
-
-## Troubleshooting 🔧
-
-### Common Issues
-
-**Container won't start:**
-
--   Check that ports 80/443 aren't already in use
--   Verify your `.env` file syntax
--   Check Docker logs: `docker-compose logs file-server`
-
-**SSL certificate errors:**
-
--   Ensure `HOST` matches your certificate's common name
--   Verify certificate files exist and are readable
--   Check certificate expiration dates
-
-**Authentication not working:**
-
--   Verify `USERNAME` and `PASSWORD` are set correctly
--   Check that basic auth is enabled in the Caddyfile
-
-**Files not accessible:**
-
--   Ensure files are placed in the `site/` directory
--   Check file permissions
--   Verify the container can read the mounted volumes
-
-### Permission Issues
-
-**Container creates files as root:**
-
--   Set `PUID` and `PGID` in your `.env` file to match your host user's ID
--   Find your user ID: `id $USER`
--   Example: `PUID=1000` and `PGID=1000`
--   Recreate the container after changing these values
-
-**Cannot write to mounted volumes:**
-
--   Ensure the host directories exist and have correct permissions
--   The container will automatically set ownership on startup
--   If issues persist, manually set permissions: `sudo chown -R 1000:1000 logs/ site/`
-
-**Permission denied on Ubuntu server:**
-
-```bash
-# Check current user ID on Ubuntu server
-id $USER
-# This will show: uid=1000(username) gid=1000(username)
-
-# Update .env with matching values
-echo "PUID=1000" >> .env
-echo "PGID=1000" >> .env
-
-# Recreate container
-docker-compose down
-docker-compose up -d
-```
-
-**Fix existing root-owned directories:**
-
-```bash
-# On Ubuntu server, fix ownership of existing directories
-sudo chown -R $USER:$USER logs/ site/
-
-# Or with specific UID/GID
-sudo chown -R 1000:1000 logs/ site/
-```
 
 ### Debug Commands
 
@@ -294,6 +246,54 @@ docker-compose exec file-server sh
 # Test configuration
 docker-compose exec file-server caddy validate --config /etc/caddy/Caddyfile
 ```
+
+## Troubleshooting 🛠️
+
+**Common Issues and Fixes**
+
+-   **Container won't start:**
+
+    -   Check logs with `docker-compose logs -f file-server`
+    -   Ensure no port conflicts on `80`/`443`
+    -   Validate configuration: `docker-compose exec file-server caddy validate --config /etc/caddy/Caddyfile`
+
+-   **Can't access web interface:**
+
+    -   Ensure container is running: `docker-compose ps`
+    -   Check firewall settings (ports `80` and `443` should be open)
+    -   Verify DNS resolution for your domain
+
+-   **File permissions issues:**
+    -   Ensure correct ownership and permissions for `logs/` and `site/` directories
+    -   Use `chmod` and `chown` to adjust permissions if necessary
+
+**Permission issues persist:**
+
+```bash
+# Stop container
+docker-compose down
+
+# Check directory permissions
+ls -la logs/ site/
+
+# Ensure directories are accessible
+chmod 755 logs/ site/
+
+# Start container
+docker-compose up -d
+```
+
+### Automatic Permission Handling
+
+The container runs as the default Caddy user and automatically handles basic permission setup:
+
+-   **Directory Creation**: Creates necessary directories if they don't exist
+-   **Welcome File**: Creates `hello.txt` in new site directories
+-   **Basic Permissions**: Ensures directories are accessible to the container
+-   **Volume Management**: Docker volumes are managed automatically
+-   **Simple Setup**: No complex user ID configuration required
+
+**This eliminates the need for manual permission setup!**
 
 ## LICENSE :balance_scale:
 
