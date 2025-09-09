@@ -14,6 +14,7 @@ A secure, containerized file server built with Caddy web server. Features automa
 -   🔄 **Automatic Permission Fixing** - handles volume ownership issues automatically
 -   📂 **Configurable Directories** - customize log and site file locations
 -   🎉 **Welcome File** - automatically creates hello.txt in new site directories
+-   ⚙️ **Smart Start Script** - handles Docker command compatibility
 
 ## Quick Start 🚀
 
@@ -39,10 +40,10 @@ A secure, containerized file server built with Caddy web server. Features automa
 
     # Option 2: Manual setup
     ./pre-up.sh  # Setup permissions
-    docker-compose up -d
+    docker compose up -d  # or docker-compose up -d
     ```
 
-    _🎉 That's it! Permissions are handled automatically and a welcome file is created._
+    _🎉 That's it! The start.sh script handles Docker command compatibility automatically._
 
 4. **Access your files:**
     - Open your browser to `https://localhost` (or your configured HOST)
@@ -294,6 +295,22 @@ The container runs as the default Caddy user and automatically handles basic per
 -   **Simple Setup**: No complex user ID configuration required
 
 **This eliminates the need for manual permission setup!**
+
+## Environment Configuration
+
+The `.env` file uses standard shell variable format:
+
+```bash
+# Comments start with #
+VARIABLE_NAME=value
+
+# Examples:
+TZ=Europe/London
+HTTP_PORT=8080
+SITE_DIR=/var/www/html
+```
+
+**Note:** Variables are loaded using shell sourcing, so they follow standard shell variable rules.
 
 ## LICENSE :balance_scale:
 

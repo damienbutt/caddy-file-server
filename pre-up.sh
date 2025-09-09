@@ -7,7 +7,9 @@ echo "==================================="
 
 # Load environment variables from .env if it exists
 if [ -f .env ]; then
-    export $(grep -v '^#' .env | xargs)
+    . .env
+else
+    echo "📄 No .env file found, using defaults"
 fi
 
 echo "👤 Current user: $(whoami) ($(id -u):$(id -g))"
