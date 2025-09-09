@@ -11,6 +11,7 @@ A secure, containerized file server built with Caddy web server. Features automa
 -   🐳 **Docker Containerized** for easy deployment
 -   🔧 **Configurable** via environment variables
 -   🚀 **HTTP to HTTPS Redirect** for security
+-   👤 **Proper User Permissions** - runs as non-root user with correct ownership
 
 ## Quick Start 🚀
 
@@ -21,27 +22,36 @@ A secure, containerized file server built with Caddy web server. Features automa
     cd caddy-file-server
     ```
 
-2. **Create environment configuration:**
+2. **Check your server's user ID (important for permissions):**
+
+    ```bash
+    # On your server, check your user ID
+    id $USER
+    # Note the uid=XXXX and gid=YYYY values
+    ```
+
+3. **Create environment configuration:**
 
     ```bash
     cp .env.example .env
     # Edit .env with your preferred settings
+    # IMPORTANT: Set PUID and PGID to match your server's user ID from step 2
     ```
 
-3. **Add your files:**
+4. **Add your files:**
 
     ```bash
     # Place files to serve in the site/ directory
     cp your-files/* site/
     ```
 
-4. **Start the server:**
+5. **Start the server:**
 
     ```bash
     docker-compose up -d
     ```
 
-5. **Access your files:**
+6. **Access your files:**
     - Open your browser to `https://localhost` (or your configured HOST)
     - Login with your configured credentials (default: admin/password)
 
@@ -49,19 +59,19 @@ A secure, containerized file server built with Caddy web server. Features automa
 
 Configure the server by copying `.env.example` to `.env` and setting your preferred values:
 
-| Variable     | Default      | Description                                     |
-| ------------ | ------------ | ----------------------------------------------- |
-| `TZ`         | `UTC`        | Timezone for container (e.g., America/New_York) |
-| `HOST`       | `localhost`  | Hostname or IP address                          |
-| `HTTP_PORT`  | `80`         | HTTP port (redirects to HTTPS)                  |
-| `HTTPS_PORT` | `443`        | HTTPS port                                      |
-| `USERNAME`   | `admin`      | Basic auth username                             |
-| `PASSWORD`   | `password`   | Basic auth password                             |
-| `LOG_FILE`   | `access.log` | Log file name                                   |
-| `CERT_FILE`  | `cert.pem`   | Custom SSL certificate file                     |
-| `KEY_FILE`   | `key.pem`    | Custom SSL private key file                     |
-| `PUID`       | `1000`       | User ID for container (for file permissions)    |
-| `PGID`       | `1000`       | Group ID for container (for file permissions)   |
+| Variable     | Default      | Description                                                                    |
+| ------------ | ------------ | ------------------------------------------------------------------------------ |
+| `TZ`         | `UTC`        | Timezone for container (e.g., America/New_York) - set via environment variable |
+| `HOST`       | `localhost`  | Hostname or IP address                                                         |
+| `HTTP_PORT`  | `80`         | HTTP port (redirects to HTTPS)                                                 |
+| `HTTPS_PORT` | `443`        | HTTPS port                                                                     |
+| `USERNAME`   | `admin`      | Basic auth username                                                            |
+| `PASSWORD`   | `password`   | Basic auth password                                                            |
+| `LOG_FILE`   | `access.log` | Log file name                                                                  |
+| `CERT_FILE`  | `cert.pem`   | Custom SSL certificate file                                                    |
+| `KEY_FILE`   | `key.pem`    | Custom SSL private key file                                                    |
+| `PUID`       | `1000`       | User ID for container (for file permissions) - set to your host user's UID     |
+| `PGID`       | `1000`       | Group ID for container (for file permissions) - set to your host user's GID    |
 
 ### SSL Certificates 🔐
 
@@ -246,16 +256,27 @@ docker-compose up -d
 **Permission denied on Ubuntu server:**
 
 ```bash
-# Check current user ID
+# Check current user ID on Ubuntu server
 id $USER
+# This will show: uid=1000(username) gid=1000(username)
 
 # Update .env with matching values
-echo "PUID=$(id -u)" >> .env
-echo "PGID=$(id -g)" >> .env
+echo "PUID=1000" >> .env
+echo "PGID=1000" >> .env
 
 # Recreate container
 docker-compose down
 docker-compose up -d
+```
+
+**Fix existing root-owned directories:**
+
+```bash
+# On Ubuntu server, fix ownership of existing directories
+sudo chown -R $USER:$USER logs/ site/
+
+# Or with specific UID/GID
+sudo chown -R 1000:1000 logs/ site/
 ```
 
 ### Debug Commands

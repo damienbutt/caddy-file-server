@@ -13,19 +13,9 @@ fi
 
 echo "👤 Running as user $PUID:$PGID"
 
-# Set ownership of host-mounted directories only
-# Docker managed volumes are automatically owned by container user
-# Host directories may need ownership correction
-chown -R $PUID:$PGID /srv 2>/dev/null || echo "⚠️  Could not set ownership of /srv"
-chown -R $PUID:$PGID /logs 2>/dev/null || echo "⚠️  Could not set ownership of /logs"
-
-echo "📁 Ensured ownership of host mounts"
-
-# Set timezone if provided
+# Set timezone if provided (TZ env var is already set in docker-compose.yml)
 if [ -n "$TZ" ]; then
-    echo "🕐 Setting timezone to $TZ"
-    ln -sf /usr/share/zoneinfo/$TZ /etc/localtime
-    echo "$TZ" > /etc/timezone
+    echo "🕐 Timezone set to $TZ via environment variable"
 else
     echo "🕐 Using default timezone UTC"
 fi
