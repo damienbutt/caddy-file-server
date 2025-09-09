@@ -2,6 +2,34 @@
 
 set -e
 
+# Set default UID/GID if not provided
+if [ -z "$PUID" ]; then
+    PUID=1000
+fi
+
+if [ -z "$PGID" ]; then
+    PGID=1000
+fi
+
+echo "👤 Running as user $PUID:$PGID"
+
+# Set ownership of host-mounted directories only
+# Docker managed volumes are automatically owned by container user
+# Host directories may need ownership correction
+chown -R $PUID:$PGID /srv 2>/dev/null || echo "⚠️  Could not set ownership of /srv"
+chown -R $PUID:$PGID /logs 2>/dev/null || echo "⚠️  Could not set ownership of /logs"
+
+echo "📁 Ensured ownership of host mounts"
+
+# Set timezone if provided
+if [ -n "$TZ" ]; then
+    echo "🕐 Setting timezone to $TZ"
+    ln -sf /usr/share/zoneinfo/$TZ /etc/localtime
+    echo "$TZ" > /etc/timezone
+else
+    echo "🕐 Using default timezone UTC"
+fi
+
 if [ -z "$HTTP_PORT" ]; then
     echo "🌐 Using default HTTP port 80"
     HTTP_PORT=80

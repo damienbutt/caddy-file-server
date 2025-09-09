@@ -49,16 +49,19 @@ A secure, containerized file server built with Caddy web server. Features automa
 
 Configure the server by copying `.env.example` to `.env` and setting your preferred values:
 
-| Variable     | Default      | Description                    |
-| ------------ | ------------ | ------------------------------ |
-| `HOST`       | `localhost`  | Hostname or IP address         |
-| `HTTP_PORT`  | `80`         | HTTP port (redirects to HTTPS) |
-| `HTTPS_PORT` | `443`        | HTTPS port                     |
-| `USERNAME`   | `admin`      | Basic auth username            |
-| `PASSWORD`   | `password`   | Basic auth password            |
-| `LOG_FILE`   | `access.log` | Log file name                  |
-| `CERT_FILE`  | `cert.pem`   | Custom SSL certificate file    |
-| `KEY_FILE`   | `key.pem`    | Custom SSL private key file    |
+| Variable     | Default      | Description                                     |
+| ------------ | ------------ | ----------------------------------------------- |
+| `TZ`         | `UTC`        | Timezone for container (e.g., America/New_York) |
+| `HOST`       | `localhost`  | Hostname or IP address                          |
+| `HTTP_PORT`  | `80`         | HTTP port (redirects to HTTPS)                  |
+| `HTTPS_PORT` | `443`        | HTTPS port                                      |
+| `USERNAME`   | `admin`      | Basic auth username                             |
+| `PASSWORD`   | `password`   | Basic auth password                             |
+| `LOG_FILE`   | `access.log` | Log file name                                   |
+| `CERT_FILE`  | `cert.pem`   | Custom SSL certificate file                     |
+| `KEY_FILE`   | `key.pem`    | Custom SSL private key file                     |
+| `PUID`       | `1000`       | User ID for container (for file permissions)    |
+| `PGID`       | `1000`       | Group ID for container (for file permissions)   |
 
 ### SSL Certificates 🔐
 
@@ -117,6 +120,36 @@ EOF
 docker-compose up -d
 ```
 
+### Production Setup with Proper User Permissions
+
+```bash
+# Configure for production with proper user permissions
+cat > .env << EOF
+HOST=files.yourdomain.com
+USERNAME=your-admin
+PASSWORD=your-secure-password
+LOG_FILE=production.log
+PUID=1000
+PGID=1000
+EOF
+
+docker-compose up -d
+```
+
+### Custom User Permissions
+
+```bash
+# Find your user's UID/GID on the host system
+id $USER
+# uid=1000(youruser) gid=1000(youruser) groups=1000(youruser)
+
+# Set matching permissions in .env
+echo "PUID=1000" >> .env
+echo "PGID=1000" >> .env
+
+docker-compose up -d
+```
+
 ### Custom SSL Setup
 
 ```bash
@@ -130,6 +163,27 @@ echo "KEY_FILE=key.pem" >> .env
 echo "HOST=your-domain.com" >> .env
 
 docker-compose up -d
+```
+
+### Timezone Configuration
+
+```bash
+# Set timezone for proper logging timestamps
+cat > .env << EOF
+TZ=America/New_York
+HOST=files.yourdomain.com
+USERNAME=your-admin
+PASSWORD=your-secure-password
+EOF
+
+docker-compose up -d
+
+# Common timezone values:
+# TZ=America/New_York
+# TZ=Europe/London
+# TZ=Asia/Tokyo
+# TZ=Australia/Sydney
+# TZ=UTC (default)
 ```
 
 ## Security Considerations 🔒
@@ -173,6 +227,36 @@ docker-compose up -d
 -   Ensure files are placed in the `site/` directory
 -   Check file permissions
 -   Verify the container can read the mounted volumes
+
+### Permission Issues
+
+**Container creates files as root:**
+
+-   Set `PUID` and `PGID` in your `.env` file to match your host user's ID
+-   Find your user ID: `id $USER`
+-   Example: `PUID=1000` and `PGID=1000`
+-   Recreate the container after changing these values
+
+**Cannot write to mounted volumes:**
+
+-   Ensure the host directories exist and have correct permissions
+-   The container will automatically set ownership on startup
+-   If issues persist, manually set permissions: `sudo chown -R 1000:1000 logs/ site/`
+
+**Permission denied on Ubuntu server:**
+
+```bash
+# Check current user ID
+id $USER
+
+# Update .env with matching values
+echo "PUID=$(id -u)" >> .env
+echo "PGID=$(id -g)" >> .env
+
+# Recreate container
+docker-compose down
+docker-compose up -d
+```
 
 ### Debug Commands
 

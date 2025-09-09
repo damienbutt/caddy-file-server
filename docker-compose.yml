@@ -3,8 +3,11 @@ services:
     image: caddy:latest
     container_name: caddy-file-server
     restart: unless-stopped
+    user: "${PUID:-1000}:${PGID:-1000}"
     env_file:
       - .env
+    environment:
+      - TZ=${TZ:-UTC}
     cap_add:
       - NET_ADMIN
     ports:
