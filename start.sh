@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 set -e
 
@@ -8,8 +8,9 @@ echo "================================="
 # Load environment variables
 if [ -f .env ]; then
     echo "📄 Loading environment from .env"
-    # Source the .env file to load all variables
+    set -a
     . .env
+    set +a
 else
     echo "📄 No .env file found, using defaults"
 fi

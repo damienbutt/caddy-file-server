@@ -1,13 +1,16 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 set -e
 
 echo "🔧 Caddy File Server - Pre-up Setup"
 echo "==================================="
 
-# Load environment variables from .env if it exists
+# Load environment variables
 if [ -f .env ]; then
+    echo "📄 Loading environment from .env"
+    set -a
     . .env
+    set +a
 else
     echo "📄 No .env file found, using defaults"
 fi
